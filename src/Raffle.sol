@@ -34,8 +34,14 @@ pragma solidity 0.8.19;
  * @dev Implements Chianlink VRFv2.5
  */
 contract Raffle {
+    /** Storage variables */
+    address payable[] private s_players;
+
+    /**Events */
+    event RaffleEntered(address indexed player);
+
     /**Errors */
-    error SendMoreToEnterRaffle();
+    error Raffle__SendMoreToEnterRaffle();
     uint256 private i_entranceFee;
 
     constructor(uint256 entranceFee) {
@@ -44,8 +50,10 @@ contract Raffle {
 
     function enterRaffle() public payable {
         if (msg.value < i_entranceFee) {
-            revert SendMoreToEnterRaffle();
+            revert Raffle__SendMoreToEnterRaffle();
         }
+        s_players.push(payable(msg.sender)); // update storage
+        emit RaffleEntered(msg.sender); // emit and event after storage update
     }
 
     function pickWinner() public {}
