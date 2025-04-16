@@ -34,21 +34,28 @@ pragma solidity 0.8.19;
  * @dev Implements Chianlink VRFv2.5
  */
 contract Raffle {
-    /** Storage variables */
+    /** State variables */
     address payable[] private s_players;
+    uint256 private s_lastTimeStamp;
+
+    //**Immutable and constatns */
+    uint256 private immutable i_entranceFee;
+    // @dev The dudration of the lottery in seconds
+    uint256 private immutable i_interval;
 
     /**Events */
     event RaffleEntered(address indexed player);
 
     /**Errors */
     error Raffle__SendMoreToEnterRaffle();
-    uint256 private i_entranceFee;
 
-    constructor(uint256 entranceFee) {
+    constructor(uint256 entranceFee, uint256 interval) {
         i_entranceFee = entranceFee;
+        i_interval = interval;
+        s_lastTimeStamp = block.timestamp; // set the last time stamp to the current block timestamp
     }
 
-    function enterRaffle() public payable {
+    function enterRaffle() external payable {
         if (msg.value < i_entranceFee) {
             revert Raffle__SendMoreToEnterRaffle();
         }
@@ -56,7 +63,12 @@ contract Raffle {
         emit RaffleEntered(msg.sender); // emit and event after storage update
     }
 
-    function pickWinner() public {}
+    function pickWinner() external {
+        // check to see if enoug time has passed.
+        if (block.timestamp - s_lastTimeStamp < i_interval) {
+            revert();
+        }
+    }
 
     /**Getter Functions */
     function getEntranceFee() external view returns (uint256) {
