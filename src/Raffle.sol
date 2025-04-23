@@ -63,6 +63,7 @@ contract Raffle is VRFConsumerBaseV2Plus {
 
     /**Events */
     event RaffleEntered(address indexed player);
+    event PickedWinner(address indexed winner);
 
     /**Errors */
     error Raffle__SendMoreToEnterRaffle();
@@ -127,11 +128,16 @@ contract Raffle is VRFConsumerBaseV2Plus {
         uint256 winnerIndex = randomWords[0] % s_players.length;
         address payable recentWinner = s_players[winnerIndex];
         s_recentWinner = recentWinner;
+
+        s_raffleState = RaffleState.OPEN; // set the raffle state to open
+        s_players = new address payable[](0); // reset the players array
+        s_lastTimeStamp = block.timestamp; // reset the last time stamp to the current block timestamp
+
         (bool success, ) = recentWinner.call{value: address(this).balance}("");
         if (!success) {
             revert Raffle__TransferFailed();
         }
-        s_raffleState = RaffleState.OPEN; // set the raffle state to open
+        emit PickedWinner(recentWinner); // emit and event after storage update
     }
 
     /**Getter Functions */
