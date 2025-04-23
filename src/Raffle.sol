@@ -36,10 +36,18 @@ import {VRFV2PlusClient} from "@chainlink/contracts/src/v0.8/vrf/dev/libraries/V
  * @dev Implements Chianlink VRFv2.5
  */
 contract Raffle is VRFConsumerBaseV2Plus {
+    /**Type declaration */
+
+    enum RaffleState {
+        OPEN,
+        CALCULATING
+    }
+
     /** State variables */
     address payable[] private s_players;
     uint256 private s_lastTimeStamp;
     address private s_recentWinner;
+    RaffleState private s_raffleState;
 
     /**Constants */
     uint32 private constant NUMWORDS = 1;
@@ -59,6 +67,7 @@ contract Raffle is VRFConsumerBaseV2Plus {
     /**Errors */
     error Raffle__SendMoreToEnterRaffle();
     error Raffle__TransferFailed();
+    error Raffle__NotOpen();
 
     constructor(
         uint256 entranceFee,
@@ -70,16 +79,22 @@ contract Raffle is VRFConsumerBaseV2Plus {
     ) VRFConsumerBaseV2Plus(vrfCooridnator) {
         i_entranceFee = entranceFee;
         i_interval = interval;
-        s_lastTimeStamp = block.timestamp; // set the last time stamp to the current block timestamp
         i_keyHash = _keyHash;
         i_subscriptionId = _subscriptionId;
         i_callbackGasLimit = _callbackGasLimit;
+
+        s_lastTimeStamp = block.timestamp; // set the last time stamp to the current block timestamp
+        s_raffleState = RaffleState.OPEN; // set the raffle state to open
     }
 
     function enterRaffle() external payable {
         if (msg.value < i_entranceFee) {
             revert Raffle__SendMoreToEnterRaffle();
         }
+        if (s_raffleState != RaffleState.OPEN) {
+            revert Raffle__NotOpen();
+        }
+
         s_players.push(payable(msg.sender)); // update storage
         emit RaffleEntered(msg.sender); // emit and event after storage update
     }
@@ -89,6 +104,7 @@ contract Raffle is VRFConsumerBaseV2Plus {
         if (block.timestamp - s_lastTimeStamp < i_interval) {
             revert();
         }
+        s_raffleState = RaffleState.CALCULATING; // set the raffle state to calculating
         uint256 requestId = s_vrfCoordinator.requestRandomWords(
             VRFV2PlusClient.RandomWordsRequest({
                 keyHash: i_keyHash,
@@ -115,6 +131,7 @@ contract Raffle is VRFConsumerBaseV2Plus {
         if (!success) {
             revert Raffle__TransferFailed();
         }
+        s_raffleState = RaffleState.OPEN; // set the raffle state to open
     }
 
     /**Getter Functions */
