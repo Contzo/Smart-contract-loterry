@@ -1,5 +1,5 @@
 /**
- * - Inside a sol file contrat elements should be laid like this:
+ * - Inside a sol file contract elements should be laid like this:
 	1. Pragma statements
 	2. Import statements
 	3. Events
@@ -34,6 +34,9 @@ pragma solidity 0.8.19;
  * @dev Implements Chianlink VRFv2.5
  */
 contract Raffle {
+    /**Storage variables */
+    address payable[] private s_players;
+
     /**Errors */
     error SendMoreToEnterRaffle();
     uint256 private i_entranceFee;
@@ -46,6 +49,7 @@ contract Raffle {
         if (msg.value < i_entranceFee) {
             revert SendMoreToEnterRaffle();
         }
+        s_players.push(payable(msg.sender)); // push the player to the array
     }
 
     function pickWinner() public {}
