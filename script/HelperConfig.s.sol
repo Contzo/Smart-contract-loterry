@@ -1,79 +1,144 @@
 // SPDX-License-Identifier: SEE LICENSE IN LICENSE
 pragma solidity 0.8.19;
-import {Script} from "forge-std/Script.sol";
-import {DeployVRFMockCooridnator} from "./DeployVRFMockCooridnator.s.sol";
+import {Script, console} from "forge-std/Script.sol";
 import {VRFCoordinatorV2_5Mock} from "@chainlink/contracts/src/v0.8/vrf/mocks/VRFCoordinatorV2_5Mock.sol";
-import {IVRFSubscriptionV2Plus} from "@chainlink/contracts/src/v0.8/vrf/dev/interfaces/IVRFSubscriptionV2Plus.sol";
+import {VRFCoordinatorV2Interface} from "@chainlink/contracts/src/v0.8/vrf/interfaces/VRFCoordinatorV2Interface.sol";
+import {LinkTokenInterface} from "@chainlink/contracts/src/v0.8/shared/interfaces/LinkTokenInterface.sol";
 
 contract HelperConfig is Script {
     /**Types Declaration */
     struct NetworkConfig {
         address vrfCoordinator;
         bytes32 keyHash;
-        uint64 subscriptionId;
+        uint256 subscriptionId;
+        address linkToken;
     }
     /**Immutable variables */
     NetworkConfig public i_activeNetworkConfig;
 
     /**Constructor */
     constructor() {
-        i_activeNetworkConfig = getMainNetworkConfig();
+        console.log(block.chainid);
+        if (block.chainid == 1) {
+            i_activeNetworkConfig = getOrCreateMainNetworkConfigSubscription();
+        } else if (block.chainid == 11155111) {
+            i_activeNetworkConfig = NetworkConfig({
+                vrfCoordinator: 0x9DdfaCa8183c41ad55329BdeeD9F6A8d53168B1B,
+                keyHash: 0x787d74caea10b2b357790d5b5247c2f63d1d91572a9846f780606e4d953677ae,
+                subscriptionId: 18500869138955725108857677099332487437398769831833209741250157808138339028342,
+                linkToken: 0x779877A7B0D9E8603169DdbD7836e478b4624789
+            });
+        } else {
+            i_activeNetworkConfig = getOrCreateAnvilSubscription();
+        }
     }
 
-    /**Internal and pure functions */
-    function getMainNetworkConfig()
+    function getOrCreateMainNetworkConfigSubscription()
         internal
-        view
         returns (NetworkConfig memory)
     {
+        if (i_activeNetworkConfig.vrfCoordinator != address(0)) {
+            return i_activeNetworkConfig;
+        }
+        VRFCoordinatorV2Interface vrfCoordinator = VRFCoordinatorV2Interface(
+            0xAE975071Be8F8eE67addBC1A82488F1C24858067
+        );
+        uint256 subscriptionId = uint256(vrfCoordinator.createSubscription());
         return
             NetworkConfig({
                 vrfCoordinator: 0xAE975071Be8F8eE67addBC1A82488F1C24858067,
                 keyHash: 0x6e099d640cde6de9d40ac749b4b594126b0169747122711109c9985d47751f93, // 200 gwei
-                subscriptionId: 0
+                subscriptionId: subscriptionId,
+                linkToken: 0x514910771AF9Ca656af840dff83E8264EcF986CA
             });
     }
 
-    function getSepoliaConfig() internal view returns (NetworkConfig memory) {
+    function getOrCreateSepoliaSubscription()
+        internal
+        returns (NetworkConfig memory)
+    {
         if (i_activeNetworkConfig.vrfCoordinator != address(0)) {
             return i_activeNetworkConfig;
         }
 
-        IVRFSubscriptionV2Plus vrfCoordinator = IVRFSubscriptionV2Plus(
+        VRFCoordinatorV2Interface vrfCoordinator = VRFCoordinatorV2Interface(
             0x9DdfaCa8183c41ad55329BdeeD9F6A8d53168B1B
         );
-        vm.startBroadcast();
-        uint256 subscriptionId = vrfCoordinator.createSubscription();
-        vm.stopBroadcast();
-        
-        return(
-            NetworkConfig{
+        uint256 subscriptionId = uint256(vrfCoordinator.createSubscription());
+        return
+            NetworkConfig({
                 vrfCoordinator: 0x9DdfaCa8183c41ad55329BdeeD9F6A8d53168B1B,
-                keyHash: 0x787d74caea10b2b357790d5b5247c2f63d1d91572a9846f780606e4d953677ae,
-                subscriptionId: subscriptionId
-        });
+                keyHash: 0x787d74caea10b2b357790d5b5247c2f63d1d91572a9846f780606e4d953677ae, // 200 gwei
+                subscriptionId: subscriptionId,
+                linkToken: 0x779877A7B0D9E8603169DdbD7836e478b4624789
+            });
     }
 
-    function getOrCreateAnvilConfig() internal returns (NetworkConfig memory) {
+    function getOrCreateAnvilSubscription()
+        internal
+        returns (NetworkConfig memory)
+    {
         if (i_activeNetworkConfig.vrfCoordinator != address(0)) {
             return i_activeNetworkConfig;
         }
-        DeployVRFMockCooridnator deployVRFMock = new DeployVRFMockCooridnator();
-        vm.startBroadcast();
-        VRFCoordinatorV2_5Mock vrfCoordinator = deployVRFMock.run(
+        VRFCoordinatorV2_5Mock vrfCoordinator = new VRFCoordinatorV2_5Mock(
             0.25 ether,
             1e9,
             1e18
         );
         uint256 subscriptionId = vrfCoordinator.createSubscription();
-        vm.stopBroadcast();
+        console.log(
+            "Subscription ID: ",
+            subscriptionId,
+            "VRF Coordinator: ",
+            address(vrfCoordinator)
+        );
         return
             NetworkConfig({
                 vrfCoordinator: address(vrfCoordinator),
                 keyHash: bytes32(0),
-                subscriptionId
+                subscriptionId: subscriptionId,
+                linkToken: 0x779877A7B0D9E8603169DdbD7836e478b4624789
             });
     }
 
-    function fundSubscrition(uint256 amount) external {}
+    function fundSubscrition(uint256 amountInJules) external {
+        if (i_activeNetworkConfig.subscriptionId == 0) {
+            revert("Subscription ID is not set");
+        }
+        if (block.chainid == 31337) {
+            VRFCoordinatorV2_5Mock(i_activeNetworkConfig.vrfCoordinator)
+                .fundSubscription(
+                    i_activeNetworkConfig.subscriptionId,
+                    amountInJules
+                );
+        } else {
+            LinkTokenInterface(i_activeNetworkConfig.linkToken).transferAndCall(
+                    i_activeNetworkConfig.vrfCoordinator,
+                    amountInJules,
+                    abi.encode(uint64(i_activeNetworkConfig.subscriptionId))
+                );
+            console.log(
+                "Funded subscription with: ",
+                amountInJules,
+                " LINK tokens"
+            );
+        }
+    }
+
+    function addConsumer(address consumer) external {
+        if (i_activeNetworkConfig.subscriptionId == 0) {
+            revert("Subscription ID is not set");
+        }
+        if (block.chainid == 31337) {
+            VRFCoordinatorV2_5Mock(i_activeNetworkConfig.vrfCoordinator)
+                .addConsumer(i_activeNetworkConfig.subscriptionId, consumer);
+        } else {
+            VRFCoordinatorV2Interface(i_activeNetworkConfig.vrfCoordinator)
+                .addConsumer(
+                    uint64(i_activeNetworkConfig.subscriptionId),
+                    consumer
+                );
+        }
+    }
 }
