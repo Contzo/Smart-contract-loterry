@@ -20,7 +20,9 @@ contract HelperConfig is Script {
     constructor() {
         console.log(block.chainid);
         if (block.chainid == 1) {
-            i_activeNetworkConfig = getOrCreateMainNetworkConfigSubscription();
+            // need to manually provide VRF coordinator address, keyhash and subscriptionId becauuse
+            // only EOA accnount can create VRF subscriptions
+            // i_activeNetworkConfig = getOrCreateMainNetworkConfigSubscription();
         } else if (block.chainid == 11155111) {
             i_activeNetworkConfig = NetworkConfig({
                 vrfCoordinator: 0x9DdfaCa8183c41ad55329BdeeD9F6A8d53168B1B,
@@ -31,47 +33,6 @@ contract HelperConfig is Script {
         } else {
             i_activeNetworkConfig = getOrCreateAnvilSubscription();
         }
-    }
-
-    function getOrCreateMainNetworkConfigSubscription()
-        internal
-        returns (NetworkConfig memory)
-    {
-        if (i_activeNetworkConfig.vrfCoordinator != address(0)) {
-            return i_activeNetworkConfig;
-        }
-        VRFCoordinatorV2Interface vrfCoordinator = VRFCoordinatorV2Interface(
-            0xAE975071Be8F8eE67addBC1A82488F1C24858067
-        );
-        uint256 subscriptionId = uint256(vrfCoordinator.createSubscription());
-        return
-            NetworkConfig({
-                vrfCoordinator: 0xAE975071Be8F8eE67addBC1A82488F1C24858067,
-                keyHash: 0x6e099d640cde6de9d40ac749b4b594126b0169747122711109c9985d47751f93, // 200 gwei
-                subscriptionId: subscriptionId,
-                linkToken: 0x514910771AF9Ca656af840dff83E8264EcF986CA
-            });
-    }
-
-    function getOrCreateSepoliaSubscription()
-        internal
-        returns (NetworkConfig memory)
-    {
-        if (i_activeNetworkConfig.vrfCoordinator != address(0)) {
-            return i_activeNetworkConfig;
-        }
-
-        VRFCoordinatorV2Interface vrfCoordinator = VRFCoordinatorV2Interface(
-            0x9DdfaCa8183c41ad55329BdeeD9F6A8d53168B1B
-        );
-        uint256 subscriptionId = uint256(vrfCoordinator.createSubscription());
-        return
-            NetworkConfig({
-                vrfCoordinator: 0x9DdfaCa8183c41ad55329BdeeD9F6A8d53168B1B,
-                keyHash: 0x787d74caea10b2b357790d5b5247c2f63d1d91572a9846f780606e4d953677ae, // 200 gwei
-                subscriptionId: subscriptionId,
-                linkToken: 0x779877A7B0D9E8603169DdbD7836e478b4624789
-            });
     }
 
     function getOrCreateAnvilSubscription()
