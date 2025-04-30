@@ -56,7 +56,7 @@ contract Raffle is VRFConsumerBaseV2Plus {
     //**Immutable and constatns */
     uint256 private immutable i_entranceFee;
     bytes32 private immutable i_keyHash;
-    uint64 private immutable i_subscriptionId;
+    uint256 private immutable i_subscriptionId;
     uint32 private immutable i_callbackGasLimit;
     // @dev The dudration of the lottery in seconds
     uint256 private immutable i_interval;
@@ -75,7 +75,7 @@ contract Raffle is VRFConsumerBaseV2Plus {
         uint256 interval,
         address vrfCooridnator,
         bytes32 _keyHash,
-        uint64 _subscriptionId,
+        uint256 _subscriptionId,
         uint32 _callbackGasLimit
     ) VRFConsumerBaseV2Plus(vrfCooridnator) {
         i_entranceFee = entranceFee;
