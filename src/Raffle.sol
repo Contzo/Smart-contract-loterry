@@ -26,7 +26,7 @@
  */
 // SPDX-License-Identifier: SEE LICENSE IN LICENSE
 pragma solidity 0.8.19;
-import {VRFConsumerBaseV2Plus} from "@chainlink/contracts/src/v0.8/vrf/VRFConsumerBaseV2Plus.sol";
+import {VRFConsumerBaseV2Plus} from "@chainlink/contracts/src/v0.8/vrf/dev/VRFConsumerBaseV2Plus.sol";
 import {VRFV2PlusClient} from "@chainlink/contracts/src/v0.8/vrf/dev/libraries/VRFV2PlusClient.sol";
 
 /**
@@ -125,19 +125,22 @@ contract Raffle is VRFConsumerBaseV2Plus {
         uint256 requestId,
         uint256[] calldata randomWords
     ) internal override {
+        //Checks - we don' have any here
+
+        //Effects
         uint256 winnerIndex = randomWords[0] % s_players.length;
         address payable recentWinner = s_players[winnerIndex];
         s_recentWinner = recentWinner;
-
         s_raffleState = RaffleState.OPEN; // set the raffle state to open
         s_players = new address payable[](0); // reset the players array
         s_lastTimeStamp = block.timestamp; // reset the last time stamp to the current block timestamp
+        emit PickedWinner(recentWinner); // emit and event after storage update
 
+        //Interactions
         (bool success, ) = recentWinner.call{value: address(this).balance}("");
         if (!success) {
             revert Raffle__TransferFailed();
         }
-        emit PickedWinner(recentWinner); // emit and event after storage update
     }
 
     /**Getter Functions */
