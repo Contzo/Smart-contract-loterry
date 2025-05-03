@@ -60,6 +60,7 @@ contract Raffle is VRFConsumerBaseV2Plus {
     uint32 private immutable i_callbackGasLimit;
     // @dev The dudration of the lottery in seconds
     uint256 private immutable i_interval;
+    address private immutable i_owner;
 
     /**Events */
     event RaffleEntered(address indexed player);
@@ -91,6 +92,7 @@ contract Raffle is VRFConsumerBaseV2Plus {
 
         s_lastTimeStamp = block.timestamp; // set the last time stamp to the current block timestamp
         s_raffleState = RaffleState.OPEN; // set the raffle state to open
+        i_owner = msg.sender; // set the owner to the address that deployed the contract
     }
 
     function enterRaffle() external payable {
@@ -180,5 +182,13 @@ contract Raffle is VRFConsumerBaseV2Plus {
     /**Getter Functions */
     function getEntranceFee() external view returns (uint256) {
         return i_entranceFee;
+    }
+
+    function getOwner() external view returns (address) {
+        return i_owner;
+    }
+
+    function getRaffleState() external view returns (RaffleState) {
+        return s_raffleState;
     }
 }
