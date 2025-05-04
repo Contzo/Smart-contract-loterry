@@ -19,6 +19,9 @@ contract RaffleTest is Test {
     uint256 subscriptionId;
     uint32 callbackGasLimit;
 
+    event RaffleEntered(address indexed player);
+    event PickedWinner(address indexed winner);
+
     function setUp() external {
         vm.deal(player, STARTING_PLAYER_BALANCE);
         DeployRaffle deployRaffle = new DeployRaffle();
@@ -57,5 +60,14 @@ contract RaffleTest is Test {
         //assert
         address mostRecentPlayer = raffle.getPlayerAtIndex(0);
         assertEq(mostRecentPlayer, player);
+    }
+
+    function test_EnteringRaffleEmitsEvent() external {
+        //Arrange
+        vm.prank(player);
+        //Act/Assert
+        vm.expectEmit(true, false, false, false, address(raffle)); // the strcuture of the event we want to check and the address of the contract that emits it
+        emit RaffleEntered(player); // we let the test know what event we expect to be emitted by emiting it, I know it is weird
+        raffle.enterRaffle{value: entranceFee}();
     }
 }
