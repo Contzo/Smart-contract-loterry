@@ -10,7 +10,7 @@ contract RaffleTest is Test {
     HelperConfig helperConfig;
 
     address player = makeAddr("player");
-    uint256 constant PLAYER_BALANCE = 10 ether;
+    uint256 constant STARTING_PLAYER_BALANCE = 10 ether;
 
     uint256 entranceFee;
     uint256 interval;
@@ -20,6 +20,7 @@ contract RaffleTest is Test {
     uint32 callbackGasLimit;
 
     function setUp() external {
+        vm.deal(player, STARTING_PLAYER_BALANCE);
         DeployRaffle deployRaffle = new DeployRaffle();
         (raffle, helperConfig) = deployRaffle.deployContract();
         HelperConfig.NetworkConfig memory config = helperConfig
@@ -34,5 +35,27 @@ contract RaffleTest is Test {
 
     function testRaffleInitializesInOpenState() external view {
         assert(raffle.getRaffleState() == Raffle.RaffleState.OPEN);
+    }
+
+    /*//////////////////////////////////////////////////////////////
+                              ENTER RAFFLE
+    //////////////////////////////////////////////////////////////*/
+    function test_RaffleRevertsWhenNotEnoughETHEntered() external {
+        //Arange
+        vm.prank(player);
+        //Act/Assert
+        vm.expectRevert(Raffle.Raffle__SendMoreToEnterRaffle.selector);
+        raffle.enterRaffle();
+    }
+
+    function test_RaffleRecordsPlayersWhenTheyEnter() external {
+        //Arrange
+        vm.prank(player);
+        console.log("Entrance fee: ", entranceFee);
+        //Act
+        raffle.enterRaffle{value: entranceFee}();
+        //assert
+        address mostRecentPlayer = raffle.getPlayerAtIndex(0);
+        assertEq(mostRecentPlayer, player);
     }
 }
