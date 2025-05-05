@@ -70,4 +70,17 @@ contract RaffleTest is Test {
         emit RaffleEntered(player); // we let the test know what event we expect to be emitted by emiting it, I know it is weird
         raffle.enterRaffle{value: entranceFee}();
     }
+
+    function test_DontAllowEntranceWhenRaffleIsCalculating() external {
+        //Arrange
+        vm.prank(player);
+        raffle.enterRaffle{value: entranceFee}(); // have at least one player enter the raffle, in order to have some players and balance
+        vm.warp(block.timestamp + interval + 1); // warp the block timestamp to be greater than the interval
+        vm.roll(block.number + 1); // roll the block number to be greater than the current block number
+        //Act/Asssert
+        raffle.performUpkeep(""); // call performUpkeep to set the raffle state to calculating
+        vm.expectRevert(Raffle.Raffle__NotOpen.selector); // expect the revert
+        vm.prank(player);
+        raffle.enterRaffle{value: entranceFee}(); // try to enter the raffle again
+    }
 }
