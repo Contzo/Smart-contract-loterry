@@ -2,6 +2,7 @@
 pragma solidity 0.8.19;
 import {Script, console} from "forge-std/Script.sol";
 import {VRFCoordinatorV2_5Mock} from "@chainlink/contracts/src/v0.8/vrf/mocks/VRFCoordinatorV2_5Mock.sol";
+import {LinkToken} from "test/mocks/LinkToken.sol";
 
 abstract contract CodeConstants {
     /**VRF mock values */
@@ -23,6 +24,7 @@ contract HelperConfig is CodeConstants, Script {
         bytes32 keyHash;
         uint256 subscriptionId;
         uint32 callbackGasLimit;
+        address linkToken;
     }
 
     NetworkConfig public localNetworkConfig;
@@ -57,7 +59,8 @@ contract HelperConfig is CodeConstants, Script {
                 vrfCoordinator: 0x9DdfaCa8183c41ad55329BdeeD9F6A8d53168B1B,
                 keyHash: 0x787d74caea10b2b357790d5b5247c2f63d1d91572a9846f780606e4d953677ae,
                 callbackGasLimit: 100000,
-                subscriptionId: 0
+                subscriptionId: 18500869138955725108857677099332487437398769831833209741250157808138339028342,
+                linkToken: 0x779877A7B0D9E8603169DdbD7836e478b4624789
             });
     }
 
@@ -71,14 +74,15 @@ contract HelperConfig is CodeConstants, Script {
             GAS_PRICE_LINK,
             WEI_PER_UNIT_LINK
         );
-        vm.stopBroadcast();
+        LinkToken linkToken = new LinkToken(); // deploy link token mock
         localNetworkConfig = NetworkConfig({
             entranceFee: 0.01 ether,
             interval: 30, //30 seconds
             vrfCoordinator: address(vrfCoordinator),
             keyHash: 0x787d74caea10b2b357790d5b5247c2f63d1d91572a9846f780606e4d953677ae,
             callbackGasLimit: 100000,
-            subscriptionId: 0
+            subscriptionId: 0,
+            linkToken: address(linkToken)
         });
         return localNetworkConfig;
     }
