@@ -83,4 +83,42 @@ contract RaffleTest is Test {
         vm.prank(player);
         raffle.enterRaffle{value: entranceFee}(); // try to enter the raffle again
     }
+
+    /*//////////////////////////////////////////////////////////////
+                              CHECK UPKEEP
+    //////////////////////////////////////////////////////////////*/
+    function test_CheckUpkeepReturnsFalseIfHasNoBalance() external {
+        //Arrange
+        vm.warp(block.timestamp + interval + 1); // warp the block timestamp to be greater than the interval
+        vm.roll(block.number + 1); // roll the block number to be greater than the current block number
+        //Act
+        (bool upkeepNeeded, ) = raffle.checkUpkeep(""); // call checkUpkeep to check if upkeep is needed
+        //Assert
+        assert(!upkeepNeeded);
+    }
+
+    function test_checkUpkeepReturnsFalsIfRaffleIsntOpen() external {
+        //Arrange
+        vm.prank(player);
+        raffle.enterRaffle{value: entranceFee + 1 ether}(); // have at least one player enter the raffle, in order to have some players and balance
+        vm.warp(block.timestamp + interval + 1); // warp the block timestamp to be greater than the interval
+        vm.roll(block.number + 1); // roll the block number to be greater than the current block number
+        raffle.performUpkeep(""); // call performUpkeep to set the raffle state to calculating, this should close the raffle
+        //Act
+        (bool upkeepNeeded, ) = raffle.checkUpkeep(""); // call checkUpkeep to check if upkeep is needed
+        //Assert
+        assert(!upkeepNeeded);
+    }
+
+    function test_checkUpkeepRetrunsFalseIfNotEnoughTimePassed() external {
+        //Arrange
+        vm.prank(player);
+        raffle.enterRaffle{value: entranceFee + 1 ether}(); // have at least one player enter the raffle, in order to have some players and balance
+        vm.warp(block.timestamp + interval - 2); // warp the block timestamp to be less than the interval
+        vm.roll(block.number + 1); // roll the block number to be greater than the current block number
+        //Acct
+        (bool upkeepNeeded, ) = raffle.checkUpkeep(""); // call checkUpkeep to check if upkeep is needed
+        //Assert
+        assert(!upkeepNeeded);
+    }
 }
