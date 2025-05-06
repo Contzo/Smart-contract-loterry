@@ -65,8 +65,8 @@ contract HelperConfig is CodeConstants, Script {
     }
 
     function getOrCreateAnvilEthConfig() public returns (NetworkConfig memory) {
-        if (localNetworkConfig.vrfCoordinator != address(0)) {
-            return localNetworkConfig;
+        if (networkConfigs[LOCAL_CHAIN_ID].vrfCoordinator != address(0)) {
+            return networkConfigs[LOCAL_CHAIN_ID];
         }
         vm.startBroadcast();
         VRFCoordinatorV2_5Mock vrfCoordinator = new VRFCoordinatorV2_5Mock(
@@ -75,7 +75,8 @@ contract HelperConfig is CodeConstants, Script {
             WEI_PER_UNIT_LINK
         );
         LinkToken linkToken = new LinkToken(); // deploy link token mock
-        localNetworkConfig = NetworkConfig({
+        vm.stopBroadcast();
+        networkConfigs[LOCAL_CHAIN_ID] = NetworkConfig({
             entranceFee: 0.01 ether,
             interval: 30, //30 seconds
             vrfCoordinator: address(vrfCoordinator),
@@ -84,6 +85,10 @@ contract HelperConfig is CodeConstants, Script {
             subscriptionId: 0,
             linkToken: address(linkToken)
         });
-        return localNetworkConfig;
+        return networkConfigs[LOCAL_CHAIN_ID];
+    }
+
+    function setSubId(uint256 subId, uint256 chainId) public {
+        networkConfigs[chainId].subscriptionId = subId;
     }
 }

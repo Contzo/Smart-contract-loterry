@@ -6,6 +6,7 @@ import {Script, console} from "../lib/forge-std/src/Script.sol";
 import {HelperConfig} from "./HelperConfig.s.sol";
 import {CodeConstants} from "./HelperConfig.s.sol";
 import {LinkToken} from "test/mocks/LinkToken.sol";
+import {DevOpsTools} from "lib/foundry-devops/src/DevOpsTools.sol";
 
 contract CreateSubscription is Script {
     function run() public {
@@ -18,6 +19,7 @@ contract CreateSubscription is Script {
 
         //create sub
         (uint256 subId, ) = createSubscription(vrfCoordinator);
+        helperConfig.setSubId(subId, block.chainid); //
         return (subId, vrfCoordinator);
     }
 
@@ -28,11 +30,11 @@ contract CreateSubscription is Script {
         vm.startBroadcast();
         uint256 subId = IVRFCoordinatorV2Plus(_vrfCoordinator)
             .createSubscription();
+        vm.stopBroadcast();
         console.log("Subscription ID: ", subId);
         console.log(
             "Please update the subscription ID in the HelperConfig contract"
         );
-        vm.stopBroadcast();
         return (subId, _vrfCoordinator);
     }
 }
@@ -67,6 +69,7 @@ contract FundSubscription is Script, CodeConstants {
                 _subId,
                 FUND_AMOUNT
             );
+            vm.stopBroadcast();
         } else {
             vm.startBroadcast();
             LinkToken(_link).transferAndCall(
@@ -76,5 +79,40 @@ contract FundSubscription is Script, CodeConstants {
             );
             vm.stopBroadcast();
         }
+    }
+}
+
+contract AddConsumer is Script {
+    function run() external {
+        // get the most recent deployed contract
+        address mostRecentDeployed = DevOpsTools.get_most_recent_deployment(
+            "Raffle",
+            block.chainid
+        );
+        addConsumerUsingConfig(mostRecentDeployed);
+    }
+
+    function addConsumerUsingConfig(address _mostRecentlyDeployed) public {
+        HelperConfig helperConfig = new HelperConfig();
+        address vrfCoordinator = helperConfig.getNetworkConfig().vrfCoordinator;
+        uint256 subId = helperConfig.getNetworkConfig().subscriptionId;
+        addConsumer(_mostRecentlyDeployed, vrfCoordinator, subId);
+    }
+
+    function addConsumer(
+        address _contractToAddtoVRF,
+        address _vrfCoordinator,
+        uint256 _subId
+    ) public {
+        console.log("Adding consumer contract: ", _contractToAddtoVRF);
+        console.log("To VRF coordinator: ", _vrfCoordinator);
+        console.log("On chainId: ", block.chainid);
+
+        vm.startBroadcast();
+        IVRFCoordinatorV2Plus(_vrfCoordinator).addConsumer(
+            _subId,
+            _contractToAddtoVRF
+        );
+        vm.stopBroadcast();
     }
 }
