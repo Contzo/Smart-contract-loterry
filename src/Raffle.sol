@@ -131,9 +131,7 @@ contract Raffle is VRFConsumerBaseV2Plus {
         return (upkeepNeeded, "0x0");
     }
 
-    function performUpkeep(
-        bytes calldata /* performDaa */
-    ) external returns (uint256) {
+    function performUpkeep(bytes calldata /* performDaa */) external {
         // check to see if enough time has passed.
         (bool upkeepNeeded, ) = checkUpkeep("");
         if (!upkeepNeeded) {
@@ -156,7 +154,6 @@ contract Raffle is VRFConsumerBaseV2Plus {
                 )
             })
         );
-        return requestId;
     }
 
     /**Internal functions */
