@@ -131,7 +131,9 @@ contract Raffle is VRFConsumerBaseV2Plus {
         return (upkeepNeeded, "0x0");
     }
 
-    function performUpkeep(bytes calldata /* performDaa */) external {
+    function performUpkeep(
+        bytes calldata /* performDaa */
+    ) external returns (uint256) {
         // check to see if enough time has passed.
         (bool upkeepNeeded, ) = checkUpkeep("");
         if (!upkeepNeeded) {
@@ -142,7 +144,7 @@ contract Raffle is VRFConsumerBaseV2Plus {
             );
         }
         s_raffleState = RaffleState.CALCULATING; // set the raffle state to calculating
-        s_vrfCoordinator.requestRandomWords(
+        uint256 requestId = s_vrfCoordinator.requestRandomWords(
             VRFV2PlusClient.RandomWordsRequest({
                 keyHash: i_keyHash,
                 subId: i_subscriptionId,
@@ -154,6 +156,7 @@ contract Raffle is VRFConsumerBaseV2Plus {
                 )
             })
         );
+        return requestId;
     }
 
     /**Internal functions */
