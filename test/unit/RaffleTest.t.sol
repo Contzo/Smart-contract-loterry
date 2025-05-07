@@ -4,6 +4,8 @@ import {Test, console} from "forge-std/Test.sol";
 import {DeployRaffle} from "../../script/DeployRaffle.s.sol";
 import {Raffle} from "../../src/Raffle.sol";
 import {HelperConfig} from "../../script/HelperConfig.s.sol";
+import {Vm} from "forge-std/Vm.sol";
+import {VRFCoordinatorV2_5Mock} from "@chainlink/contracts/src/v0.8/vrf/mocks/VRFCoordinatorV2_5Mock.sol";
 
 contract RaffleTest is Test {
     Raffle raffle;
@@ -137,7 +139,6 @@ contract RaffleTest is Test {
     /*//////////////////////////////////////////////////////////////
                              PERFOMR UPKEEP
     //////////////////////////////////////////////////////////////*/
-
     function test_checkPerformUpkeepRevertsIfNotEnoughTimeHasPassed() external {
         //Arrange
         vm.prank(player);
@@ -197,7 +198,7 @@ contract RaffleTest is Test {
         raffle.performUpkeep("");
     }
 
-    function test_checkPerformUpkeepChangesRAffleState() external {
+    function test_checkPerformUpkeepChangesRaffleState() external {
         //Arrange
         vm.prank(player);
         raffle.enterRaffle{value: entranceFee}();
@@ -209,5 +210,42 @@ contract RaffleTest is Test {
 
         //Assert
         assert(raffle.getRaffleState() == Raffle.RaffleState.CALCULATING);
+    }
+
+    modifier raffleEntered() {
+        vm.prank(player);
+        raffle.enterRaffle{value: entranceFee}();
+        vm.warp(block.timestamp + interval + 1);
+        vm.roll(block.number + 1);
+        _;
+    }
+
+    function test_PerformUpkeepEmitsRequestEvent() external raffleEntered {
+        //Arrange
+
+        //Act
+        vm.recordLogs(); // record the logs of the next transaction
+        raffle.performUpkeep("");
+        Vm.Log[] memory entries = vm.getRecordedLogs(); // store the logs into an an array of Log strcutures
+        bytes32 requestId = entries[1].topics[1];
+
+        //assert
+        assert(uint256(requestId) > 0);
+    }
+
+    /*//////////////////////////////////////////////////////////////
+                          FULLFILLRANDOMWORDS
+    //////////////////////////////////////////////////////////////*/
+    function test_FulfillRandomWordsCanBecCalledOnlyAfterPerformUpkeep()
+        external
+        raffleEntered
+    {
+        //Arrange allredy done by modifire
+        // Act and Assert
+        vm.expectRevert(VRFCoordinatorV2_5Mock.InvalidRequest.selector);
+        VRFCoordinatorV2_5Mock(vrfCoordinator).fulfillRandomWords(
+            0,
+            address(raffle)
+        );
     }
 }

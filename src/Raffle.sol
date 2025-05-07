@@ -65,6 +65,7 @@ contract Raffle is VRFConsumerBaseV2Plus {
     /**Events */
     event RaffleEntered(address indexed player);
     event PickedWinner(address indexed winner);
+    event RequestedRaffleWinner(uint256 indexed requestId);
 
     /**Errors */
     error Raffle__SendMoreToEnterRaffle();
@@ -154,6 +155,7 @@ contract Raffle is VRFConsumerBaseV2Plus {
                 )
             })
         );
+        emit RequestedRaffleWinner(requestId);
     }
 
     /**Internal functions */
