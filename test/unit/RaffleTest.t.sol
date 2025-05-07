@@ -234,17 +234,44 @@ contract RaffleTest is Test {
     }
 
     /*//////////////////////////////////////////////////////////////
-                          FULLFILLRANDOMWORDS
+                          FULFILL RANDOM WORDS
     //////////////////////////////////////////////////////////////*/
-    function test_FulfillRandomWordsCanBecCalledOnlyAfterPerformUpkeep()
-        external
-        raffleEntered
-    {
-        //Arrange allredy done by modifire
+    function test_FulfillRandomWordsCanBecCalledOnlyAfterPerformUpkeep(
+        uint256 randomRequestId
+    ) external raffleEntered {
+        //Arrange already done by modifier
         // Act and Assert
         vm.expectRevert(VRFCoordinatorV2_5Mock.InvalidRequest.selector);
         VRFCoordinatorV2_5Mock(vrfCoordinator).fulfillRandomWords(
-            0,
+            randomRequestId,
+            address(raffle)
+        );
+    }
+
+    function test_FulfillRandomWordsPicksWinnerResetsAndSendsMoney()
+        external
+        raffleEntered
+    {
+        //Arrange
+        uint256 additionalEntrants = 3;
+        uint256 startingIndex = 1;
+        for (
+            uint256 i = startingIndex;
+            i < startingIndex + additionalEntrants;
+            i++
+        ) {
+            address newPlayer = address(uint160(i));
+            hoax(newPlayer, 1 ether);
+            raffle.enterRaffle{value: entranceFee}();
+        }
+        uint256 startingTimestamp = raffle.getLastTimeStamp(); // get the staring timeStamp
+        //Act
+        vm.recordLogs(); // record the logs of the next transaction
+        raffle.performUpkeep("");
+        Vm.Log[] memory entries = vm.getRecordedLogs(); // store the logs into an an array of Log strcutures
+        bytes32 requestId = entries[1].topics[1];
+        VRFCoordinatorV2_5Mock(vrfCoordinator).fulfillRandomWords(
+            uint256(requestId),
             address(raffle)
         );
     }
