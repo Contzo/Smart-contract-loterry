@@ -25,6 +25,7 @@ contract HelperConfig is CodeConstants, Script {
         uint256 subscriptionId;
         uint32 callbackGasLimit;
         address linkToken;
+        address subscriptionOwnerAccount;
     }
 
     NetworkConfig public localNetworkConfig;
@@ -60,7 +61,8 @@ contract HelperConfig is CodeConstants, Script {
                 keyHash: 0x787d74caea10b2b357790d5b5247c2f63d1d91572a9846f780606e4d953677ae,
                 callbackGasLimit: 100000,
                 subscriptionId: 18500869138955725108857677099332487437398769831833209741250157808138339028342,
-                linkToken: 0x779877A7B0D9E8603169DdbD7836e478b4624789
+                linkToken: 0x779877A7B0D9E8603169DdbD7836e478b4624789,
+                subscriptionOwnerAccount: 0xEcA5e7FaDF270376Af5e6f9bD06124BdE90b58d3
             });
     }
 
@@ -83,7 +85,8 @@ contract HelperConfig is CodeConstants, Script {
             keyHash: 0x787d74caea10b2b357790d5b5247c2f63d1d91572a9846f780606e4d953677ae,
             callbackGasLimit: 100000,
             subscriptionId: 0,
-            linkToken: address(linkToken)
+            linkToken: address(linkToken),
+            subscriptionOwnerAccount: 0x1804c8AB1F12E6bbf3894d4083f33e07309d1f38
         });
         return networkConfigs[LOCAL_CHAIN_ID];
     }

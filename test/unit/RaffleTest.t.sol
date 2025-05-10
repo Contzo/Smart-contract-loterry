@@ -6,8 +6,9 @@ import {Raffle} from "../../src/Raffle.sol";
 import {HelperConfig} from "../../script/HelperConfig.s.sol";
 import {Vm} from "forge-std/Vm.sol";
 import {VRFCoordinatorV2_5Mock} from "@chainlink/contracts/src/v0.8/vrf/mocks/VRFCoordinatorV2_5Mock.sol";
+import {CodeConstants} from "script/HelperConfig.s.sol";
 
-contract RaffleTest is Test {
+contract RaffleTest is Test, CodeConstants {
     Raffle raffle;
     HelperConfig helperConfig;
 
@@ -137,7 +138,7 @@ contract RaffleTest is Test {
     }
 
     /*//////////////////////////////////////////////////////////////
-                             PERFOMR UPKEEP
+                             PERFORM UPKEEP
     //////////////////////////////////////////////////////////////*/
     function test_checkPerformUpkeepRevertsIfNotEnoughTimeHasPassed() external {
         //Arrange
@@ -177,7 +178,7 @@ contract RaffleTest is Test {
         raffle.performUpkeep("");
     }
 
-    function test_chekcIfPerformUpkeepRevertsIfRaffleIsNotOpen() external {
+    function test_checkIfPerformUpkeepRevertsIfRaffleIsNotOpen() external {
         //Arrange
         vm.prank(player);
         raffle.enterRaffle{value: entranceFee}();
@@ -226,11 +227,18 @@ contract RaffleTest is Test {
         //Act
         vm.recordLogs(); // record the logs of the next transaction
         raffle.performUpkeep("");
-        Vm.Log[] memory entries = vm.getRecordedLogs(); // store the logs into an an array of Log strcutures
+        Vm.Log[] memory entries = vm.getRecordedLogs(); // store the logs into an an array of Log structures
         bytes32 requestId = entries[1].topics[1];
 
         //assert
         assert(uint256(requestId) > 0);
+    }
+
+    modifier skipFork() {
+        if (block.chainid != LOCAL_CHAIN_ID) {
+            return;
+        }
+        _;
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -238,7 +246,7 @@ contract RaffleTest is Test {
     //////////////////////////////////////////////////////////////*/
     function test_FulfillRandomWordsCanBecCalledOnlyAfterPerformUpkeep(
         uint256 randomRequestId
-    ) external raffleEntered {
+    ) external raffleEntered skipFork {
         //Arrange already done by modifier
         // Act and Assert
         vm.expectRevert(VRFCoordinatorV2_5Mock.InvalidRequest.selector);
@@ -251,10 +259,12 @@ contract RaffleTest is Test {
     function test_FulfillRandomWordsPicksWinnerResetsAndSendsMoney()
         external
         raffleEntered
+        skipFork
     {
         //Arrange
         uint256 additionalEntrants = 3;
         uint256 startingIndex = 1;
+        address expectedWinner = address(1);
         for (
             uint256 i = startingIndex;
             i < startingIndex + additionalEntrants;
@@ -265,14 +275,27 @@ contract RaffleTest is Test {
             raffle.enterRaffle{value: entranceFee}();
         }
         uint256 startingTimestamp = raffle.getLastTimeStamp(); // get the staring timeStamp
+        uint256 expectedWinnerInitialBalance = expectedWinner.balance;
         //Act
         vm.recordLogs(); // record the logs of the next transaction
         raffle.performUpkeep("");
-        Vm.Log[] memory entries = vm.getRecordedLogs(); // store the logs into an an array of Log strcutures
+        Vm.Log[] memory entries = vm.getRecordedLogs(); // store the logs into an an array of Log structures
         bytes32 requestId = entries[1].topics[1];
         VRFCoordinatorV2_5Mock(vrfCoordinator).fulfillRandomWords(
             uint256(requestId),
             address(raffle)
         );
+
+        //Assert
+        address recentWinner = raffle.getRecentWinner();
+        Raffle.RaffleState raffleState = raffle.getRaffleState();
+        uint256 winnerBalance = recentWinner.balance;
+        uint256 endingTimeStamp = raffle.getLastTimeStamp();
+        uint256 prize = entranceFee * (additionalEntrants + 1);
+
+        assert(recentWinner == expectedWinner);
+        assert(uint256(raffleState) == 0);
+        assert(winnerBalance == expectedWinnerInitialBalance + prize);
+        assert(endingTimeStamp > startingTimestamp);
     }
 }
